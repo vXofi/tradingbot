@@ -1,0 +1,12 @@
+{
+  "sectors": {
+    "oil_gas": {
+      "tickers": ["ROSN", "LKOH", "GAZP"],
+      "clues": ["нефт", "газ", "баррел", "ОПЕК"]
+    },
+    "banks": {
+      "tickers": ["SBER"],
+      "clues": ["банк", "кредит", "ставка"]
+    }
+  }
+}

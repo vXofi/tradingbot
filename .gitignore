@@ -1,0 +1,41 @@
+# ── Secrets & credentials ────────────────────────────────────
+.env
+
+# ── Telegram session (auth data - NEVER COMMIT) ──────────────
+sessions/
+*.session
+*.session-journal
+
+# ── Runtime data (generated, not source) ─────────────────────
+logs/
+data/trades.db
+data/backtest_cache/
+
+# ── Claude Code internal state ────────────────────────────────
+.claude/
+
+# ── Test / coverage artifacts ────────────────────────────────
+.coverage
+.pytest_cache/
+htmlcov/
+
+# ── Virtual environment ───────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# ── IDE ───────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo

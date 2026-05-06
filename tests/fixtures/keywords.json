@@ -1,0 +1,75 @@
+{
+  "bullish": {
+    "keywords": [
+      "рекомендует дивиденд",
+      "прибыль выросла",
+      "рост выручки",
+      "байбэк",
+      "buyback"
+    ],
+    "weight": 1.0
+  },
+  "bearish": {
+    "keywords": [
+      "убыток",
+      "допэмисси",
+      "падение прибыли",
+      "делистинг",
+      "банкротство"
+    ],
+    "weight": -1.0
+  },
+  "ignore": {
+    "keywords": [
+      "реклама",
+      "промокод"
+    ]
+  },
+  "geopolitical": {
+    "sanctions_bearish": {
+      "keywords": ["санкци", "эмбарго"],
+      "sentiment": "bearish",
+      "sectors": ["market"],
+      "confidence": 0.6
+    },
+    "sanctions_oil": {
+      "keywords": ["нефтяное эмбарго", "потолок цен на нефть"],
+      "sentiment": "bearish",
+      "sectors": ["oil_gas"],
+      "confidence": 0.6
+    },
+    "peace_deescalation": {
+      "keywords": ["перемири", "мирные переговор"],
+      "sentiment": "bullish",
+      "sectors": ["market"],
+      "confidence": 0.6
+    }
+  },
+  "corporate_events": {
+    "criminal": {
+      "keywords": ["задержан", "арестован", "уголовное дело"],
+      "sentiment": "bearish",
+      "confidence_base": 0.75
+    },
+    "regulatory": {
+      "bullish": {
+        "keywords": ["лицензия получена", "одобрение регулятора"],
+        "confidence": 0.65
+      },
+      "bearish": {
+        "keywords": ["штраф", "отзыв лицензии"],
+        "confidence": 0.7
+      }
+    },
+    "ma": {
+      "keywords": ["поглощение", "слияние", "покупка актив"],
+      "sentiment": "bullish",
+      "confidence": 0.65
+    },
+    "debt": {
+      "keywords": ["реструктуризация долга", "технический дефолт"],
+      "sentiment": "bearish",
+      "confidence": 0.75
+    }
+  }
+}

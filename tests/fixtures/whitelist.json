@@ -1,0 +1,9 @@
+{
+  "instruments": [
+    {"ticker": "SBER", "figi": "BBG004730N88", "name": "Сбер"},
+    {"ticker": "GAZP", "figi": "BBG004730RP0", "name": "Газпром"},
+    {"ticker": "LKOH", "figi": "BBG004731032", "name": "Лукойл"},
+    {"ticker": "YDEX", "figi": "TCS00A107T19", "name": "Яндекс"},
+    {"ticker": "ROSN", "figi": "BBG004731354", "name": "Роснефть"}
+  ]
+}

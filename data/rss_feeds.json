@@ -1,0 +1,52 @@
+{
+  "feeds": [
+    {
+      "name": "Finam — Новости компаний",
+      "url": "https://www.finam.ru/analysis/conews/rsspoint/",
+      "priority": "high",
+      "poll_interval_sec": 15,
+      "enabled": true
+    },
+    {
+      "name": "Finam — Новости и комментарии",
+      "url": "https://www.finam.ru/analysis/nslent/rsspoint/",
+      "priority": "normal",
+      "poll_interval_sec": 30,
+      "enabled": true
+    },
+    {
+      "name": "Finam — Сценарии и прогнозы",
+      "url": "https://www.finam.ru/analysis/forecasts/rsspoint/",
+      "priority": "low",
+      "poll_interval_sec": 60,
+      "enabled": true
+    },
+    {
+      "name": "RBC — Новости",
+      "url": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
+      "priority": "high",
+      "poll_interval_sec": 15,
+      "enabled": true
+    },
+    {
+      "name": "Interfax — Бизнес",
+      "url": "https://www.interfax.ru/rss.asp",
+      "priority": "high",
+      "poll_interval_sec": 20,
+      "enabled": true
+    },
+    {
+      "name": "SmartLab — Новости",
+      "url": "https://smart-lab.ru/news/rss/",
+      "priority": "high",
+      "poll_interval_sec": 20,
+      "enabled": true
+    }
+  ],
+  "defaults": {
+    "max_entry_age_min": 30,
+    "request_timeout_sec": 15,
+    "max_retries": 3,
+    "backoff_base_sec": 5
+  }
+}

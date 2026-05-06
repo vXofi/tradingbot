@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "llm: tests requiring Gemini API key (skipped in CI)",
+]
+
+[tool.coverage.run]
+source = ["bot"]
+omit = ["bot/listeners/telegram_listener.py"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 0
