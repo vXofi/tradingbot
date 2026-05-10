@@ -75,7 +75,7 @@ class TradingBot:
         # Получаем/создаём аккаунт
         if self.config.use_sandbox:
             print("📦 Mode: SANDBOX")
-            accounts = self.client.users.get_accounts()
+            accounts = self.client.sandbox.get_sandbox_accounts()
             
             if accounts.accounts:
                 self.account_id = accounts.accounts[0].id
@@ -131,6 +131,12 @@ class TradingBot:
         )
         self.position_tracker.on_exit(self._handle_exit)
 
+        # Start position monitoring loop as a background task
+        import asyncio as _asyncio
+        self._monitor_task = _asyncio.create_task(
+            self.position_tracker.monitor_loop()
+        )
+
         # Reconcile with broker: recover positions from a previous session
         reconciled = await self._reconcile_positions()
         if reconciled:
@@ -170,6 +176,13 @@ class TradingBot:
         # 1. Stop monitoring (prevents new exit signals)
         if self.position_tracker:
             self.position_tracker.stop_monitoring()
+        if hasattr(self, '_monitor_task') and self._monitor_task:
+            self._monitor_task.cancel()
+            try:
+                import asyncio as _asyncio
+                await _asyncio.wait_for(self._monitor_task, timeout=2.0)
+            except Exception:
+                pass
 
         # 2. Optionally close all open positions
         if close_positions:
@@ -478,7 +491,7 @@ class TradingBot:
         Returns the number of positions recovered."""
         try:
             if self.config.use_sandbox:
-                resp = self.client.operations.get_portfolio(
+                resp = self.client.sandbox.get_sandbox_portfolio(
                     account_id=self.account_id,
                 )
             else:

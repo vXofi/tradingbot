@@ -20,12 +20,14 @@
 | 14 | Dashboard (multi-page, charts, controls) | ✅ Готово | `dashboard.py` |
 | 15 | Единая точка входа | ✅ Готово | `main.py` |
 | 16 | Retry / reconnection / rate limiting | ✅ Готово | `bot/utils/retry.py`, модификации stream/order/parser |
-| 17 | Автоматические тесты (pytest) | ✅ Готово (381 тест, 56% покрытие) | `tests/`, `pyproject.toml` |
+| 17 | Автоматические тесты (pytest) | ✅ Готово (409 тестов, 56% покрытие) | `tests/`, `pyproject.toml` |
 | 18 | Валидация конфигурации | ✅ Готово | `bot/config.py` (__post_init__) |
 | 19 | Персистенция истории сделок (SQLite) | ✅ Готово | `bot/utils/trade_db.py`, `data/trades.db` |
 | 20 | Graceful shutdown (SIGTERM, close-all) | ✅ Готово | `dashboard.py`, `bot/core.py` |
 | 21 | API rate limiting (async) | ✅ Готово | `bot/utils/retry.py` (AsyncRateLimiter), monitor 2s |
 | 22 | Setup guide + sanity check | ✅ Готово | `SETUP.md`, `.env.example`, `setup_check.py` |
+| 23 | Backtesting (walk-forward) | ✅ Готово | `backtest/` — simulator, data_loader, report, runner |
+| 24 | GitHub repo preparation | ✅ Готово | `README.md`, `.gitignore`, initial commit |
 
 ---
 
@@ -280,17 +282,11 @@ Dashboard — единственный способ наблюдения. Нет
 
 ---
 
-### MEDIUM-2: Отсутствие бэктестинга
-
-**Файлы:** нет (новый модуль)
-
-Стратегию можно оценить только в реальном времени (sandbox). Нет возможности прогнать на исторических данных для оценки win rate, max drawdown, Sharpe ratio.
-
-**Решение:** Создать `backtest/` модуль. Загрузка исторических свечей через `client.market_data.get_candles()` (или CSV). Replay через FlowAnalyzer с мок-данными. Вывод: equity curve, win rate, PnL distribution, max drawdown.
+### ~~MEDIUM-2: Отсутствие бэктестинга~~ → Исправлено (этап 23)
 
 ---
 
-### MEDIUM-3: Race condition в position_tracker
+### ~~MEDIUM-3: Race condition в position_tracker~~ → Исправлено
 
 **Файлы:** `bot/execution/position_tracker.py`
 
@@ -302,7 +298,7 @@ Dashboard — единственный способ наблюдения. Нет
 
 ---
 
-### LOW-1: Нет ротации логов
+### ~~LOW-1: Нет ротации логов~~ → Исправлено
 
 **Файлы:** `bot/utils/event_logger.py`
 
@@ -312,9 +308,9 @@ JSONL файлы в `logs/` накапливаются бесконечно (о�
 
 ---
 
-### LOW-2: Расширить покрытие тестов
+### ~~LOW-2: Расширить покрытие тестов~~ → Частично исправлено (409 тестов, 56%)
 
-**Текущее покрытие:** 43% (237 тестов). Не покрыты:
+**Текущее покрытие:** 56% (409 тестов). Не покрыты:
 - `bot/core.py` (0%) — требует мок всего pipeline
 - `bot/execution/position_tracker.py` (19%) — требует мок API для мониторинга
 - `bot/listeners/rss_listener.py` (22%) — требует мок aiohttp
@@ -324,10 +320,46 @@ JSONL файлы в `logs/` накапливаются бесконечно (о�
 
 ---
 
-### LOW-3: `datetime.utcnow()` deprecated warnings
+### ~~LOW-3: `datetime.utcnow()` deprecated warnings~~ → Исправлено
 
-**Файлы:** `bot/execution/risk_manager.py` (строки 79, 80, 357, 358)
+---
 
-Python 3.12+ выдаёт `DeprecationWarning` для `datetime.utcnow()`. Будет удалён в Python 3.14.
+## Баги, найденные в продакшне
 
-**Решение:** Заменить на `datetime.now(datetime.UTC)`.
+### ~~БАГ: monitor_loop не запускался~~ → Исправлено
+
+Позиции открывались, но SL/TP/time limit никогда не срабатывали — `monitor_loop` определён в `position_tracker.py`, но нигде не запускался через `asyncio.create_task`. Добавлен запуск в `core.start()`.
+
+### ~~БАГ: Sandbox API вызовы через production endpoints~~ → Исправлено
+
+`client.users.get_accounts()` и `client.operations.get_portfolio()` требуют production-токен. Для sandbox используются `client.sandbox.get_sandbox_accounts()` и `client.sandbox.get_sandbox_portfolio()`. Исправлено в `core.py` и `setup_check.py`.
+
+### ~~БАГ: HasField crash при исполнении ордера~~ → Исправлено
+
+`response.HasField("executed_order_price")` — метод protobuf не поддерживается в t-tech SDK. Заменено на `getattr(response, "executed_order_price", None)`.
+
+### ~~БАГ: datetime naive/aware в trades_stream~~ → Исправлено
+
+`datetime.now()` (naive) сравнивался с таймстемпами из API (UTC-aware). Исправлено на `datetime.now(tz=timezone.utc)`.
+
+### ~~БАГ: TCSG устаревший FIGI~~ → Исправлено
+
+`BBG00QPYJ5H0` → NOT_FOUND после ребрендинга T-Bank. Обновлено на `TCS00A109KG4` в `data/whitelist.json`.
+
+### ~~БАГ: NOT_FOUND ошибки ретраились 3 раза~~ → Исправлено
+
+Постоянные ошибки (gRPC NOT_FOUND / 50002) ретраились с backoff. Добавлен `_is_not_found_error()` — немедленный выход из retry loop.
+
+### ~~БАГ: vol=0.0x при валидации — нет ордеров~~ → Исправлено
+
+Окно анализа объёма 1 секунда работало только со стримом, не с REST. Изменено на 30 секунд в `flow_analyzer.analyze()`. Добавлен `warm_up()` при старте.
+
+### ~~БАГ: RSS SSL ошибки без текста~~ → Исправлено
+
+`aiohttp` SSL-ошибки давали пустую строку. Добавлено `TCPConnector(ssl=False)` + логирование типа исключения.
+
+### MEDIUM-1: Отсутствие внешних уведомлений (открыто)
+
+Dashboard — единственный способ наблюдения. Нет Telegram-уведомлений о сделках, нет алертов при срабатывании SL.
+
+**Решение:** `bot/utils/alerter.py` с `TelegramAlerter` через Bot API. Подписать на `EventLogger`.

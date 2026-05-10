@@ -93,7 +93,7 @@ if token:
             use_sandbox = os.getenv("USE_SANDBOX", "true").lower() == "true"
 
             if use_sandbox:
-                accounts = client.users.get_accounts()
+                accounts = client.sandbox.get_sandbox_accounts()
                 ok("Tinkoff API connection (sandbox)")
 
                 if accounts.accounts:
@@ -102,7 +102,7 @@ if token:
 
                     # Check balance
                     try:
-                        portfolio = client.operations.get_portfolio(
+                        portfolio = client.sandbox.get_sandbox_portfolio(
                             account_id=acct.id
                         )
                         total = portfolio.total_amount_currencies
