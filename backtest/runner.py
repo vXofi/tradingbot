@@ -13,7 +13,7 @@ from typing import Optional
 from bot.config import Config
 from bot.models import Sentiment
 
-from .data_loader import CandleCache, calculate_atr_from_candles
+from .data_loader import CandleCache, calculate_atr_from_candles, normalize_signal_dt
 from .report import BacktestReport
 from .simulator import PositionSimulator, TradeResult
 
@@ -57,10 +57,12 @@ class BacktestRunner:
                 print(f"  skip {sig.ticker}: not in whitelist")
                 continue
 
+            entry_time = normalize_signal_dt(sig.timestamp)
+
             # Fetch candles around the signal time
             buffer_min = self.config.trading.max_position_time_min + 30
-            start = sig.timestamp - timedelta(hours=2)  # for ATR lookback
-            end = sig.timestamp + timedelta(minutes=buffer_min)
+            start = entry_time - timedelta(hours=2)  # for ATR lookback
+            end = entry_time + timedelta(minutes=buffer_min)
 
             # Ensure cache has the needed days
             day = start.date()
@@ -75,7 +77,7 @@ class BacktestRunner:
                 continue
 
             # ATR from candles before entry
-            pre_entry = [c for c in candles if c["time"] < sig.timestamp]
+            pre_entry = [c for c in candles if c["time"] < entry_time]
             atr = calculate_atr_from_candles(pre_entry)
             if atr <= 0:
                 atr = candles[0]["close"] * 0.01  # 1% fallback
@@ -84,7 +86,7 @@ class BacktestRunner:
             result = self.simulator.simulate(
                 candles=candles,
                 direction=sig.direction,
-                entry_time=sig.timestamp,
+                entry_time=entry_time,
                 atr=atr,
                 ticker=sig.ticker,
             )

@@ -54,7 +54,7 @@ class FlowAnalyzer:
         if now - self._last_trade_fetch.get(figi, 0.0) < _TRADE_FETCH_COOLDOWN:
             return
         self._last_trade_fetch[figi] = now
-        await self.trades.fetch_last_trades(figi, minutes=1)
+        await self.trades.fetch_last_trades(figi, minutes=5)
 
     async def analyze(self, figi: str) -> FlowAnalysis:
         """

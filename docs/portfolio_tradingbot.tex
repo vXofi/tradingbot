@@ -1,0 +1,96 @@
+\documentclass[10pt,a4paper]{article}
+
+% Компилируется через xelatex — нужны Unicode-шрифты с кириллицей.
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+\setotherlanguage{english}
+\setmainfont{Times New Roman}
+\setsansfont{Helvetica}
+\setmonofont{Courier New}[Scale=0.9]
+\newfontfamily\cyrillicfont{Times New Roman}
+\newfontfamily\cyrillicfontsf{Helvetica}
+\newfontfamily\cyrillicfonttt{Courier New}[Scale=0.9]
+
+\usepackage[a4paper, top=12mm, bottom=12mm, left=14mm, right=14mm]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{microtype}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue!55!black,
+    citecolor=black,
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.5pt plus 1pt}
+
+\titleformat{\section}{\normalfont\bfseries\large}{}{0pt}{}
+\titlespacing*{\section}{0pt}{4pt}{2pt}
+
+\setlist[itemize]{leftmargin=14pt, itemsep=1pt, topsep=2pt, parsep=0pt}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% ── Заголовок ────────────────────────────────────────────────
+\begin{center}
+{\LARGE\bfseries Event-Driven Trading Bot для MOEX}
+\end{center}
+
+\vspace{2pt}\hrule\vspace{3pt}
+
+\textbf{Ссылка:} \url{https://github.com/vXofi/tradingbot}
+
+\section*{Кратко}
+{\sloppy
+Событийная торговая система для российского фондового рынка (MOEX): поток русскоязычных новостей преобразуется в торговые решения с подтверждением по микроструктуре рынка и исполнением в песочнице Tinkoff Invest API. Входы~--- RSS (6~лент), опционально Telegram, ручной ввод через CLI/дашборд; выходы~--- ордера в sandbox, закрытые сделки в SQLite, структурированные JSON-логи и терминальный дашборд. Архитектура event-driven: каждое новостное событие асинхронно проходит цепочку NLP $\to$ арбитраж $\to$ валидация order flow $\to$ исполнение $\to$ мониторинг выхода.\par}
+
+\section*{Стек}
+{\sloppy
+Python~3.10+, \texttt{asyncio}; Tinkoff Invest SDK (gRPC-стримы стакана и сделок); \texttt{aiohttp}+\texttt{feedparser} (RSS); Google Gemini API~--- LLM-fallback для NLP; Telethon (опционально); терминальный TUI на \texttt{rich}+\texttt{plotext}; SQLite; \texttt{pandas}/\texttt{numpy}; \texttt{pytest}+\texttt{pytest-asyncio}.\par}
+
+\section*{Архитектура}
+{\small\texttt{RSS/CLI $\to$ NewsParser $\to$ SignalArbiter $\to$ FlowAnalyzer $\to$ OrderManager $\to$ PositionTracker $\to$ ExitSignal}}
+
+\section*{Ключевые компоненты}
+\begin{itemize}
+  \item \textbf{NewsParser}~--- гибридный NLP: keyword-матчинг (64/59 триггеров), корпоративные и макро-события с маршрутизацией через 9~секторов, entity resolution (24~тикера, 98~синонимов/брендов), Gemini как fallback.
+  \item \textbf{SignalArbiter}~--- дедупликация в окне 60~с и детекция противоречий с открытыми позициями (в~т.ч.\ триггер разворота).
+  \item \textbf{FlowAnalyzer}~--- подтверждение сигнала по дисбалансу стакана, всплеску объёма и направлению цены; отдельный путь \texttt{validate\_reversal}.
+  \item \textbf{RiskManager}~--- ATR(14)-based SL/TP, sizing под лимит позиции, trailing stop, momentum exit.
+  \item \textbf{OrderManager}~--- исполнение marketable limit-ордеров в sandbox Tinkoff API.
+  \item \textbf{PositionTracker}~--- state machine \textsf{ACTIVE} $\to$ \textsf{REVERSING} $\to$ \textsf{CLOSED}, единый \texttt{ExitSignal} для всех условий выхода.
+  \item \textbf{Устойчивость}~--- \texttt{stream\_with\_reconnect}, \texttt{async\_retry}, rate limiters (180~req/min Tinkoff, 55~req/min Gemini).
+  \item \textbf{Persistence \& observability}~--- SQLite \texttt{trades.db}, \texttt{EventLogger} (JSON + ротация), 3-страничный Rich-дашборд (сигналы/графики/история).
+\end{itemize}
+
+\section*{Проверка и качество}
+\begin{itemize}
+  \item 430~pytest-сценариев (оркестратор, E2E pipeline, NLP eval); CI~--- GitHub Actions.
+  \item \textbf{NLP} (38~заголовков, rules-only): accuracy 100\,\%, macro-F1 1{,}0; ticker recall 100\,\%; FPR 0\,\% на negative-set. Corpus hand-labeled, не out-of-sample RSS.
+  \item \textbf{Backtest} (20~сигналов, исторические свечи): win rate 40\,\%, profit factor 2{,}97, max drawdown 1{,}68 sim units --- \textbf{не} real PnL, order-flow не моделируется.
+  \item Live-режим~--- sandbox по умолчанию (\texttt{USE\_SANDBOX=true}).
+\end{itemize}
+
+\section*{Инженерная ценность}
+Проект демонстрирует end-to-end инженерию ИИ-системы: гибридный NLP (rules + LLM), интеграция с live market data, event-driven оркестрация, управление риском и устойчивость к сбоям внешних API. Для инженерного трека важны не заявления о доходности, а воспроизводимая архитектура, тесты, observability и честное разделение sandbox/backtest vs production.
+
+\section*{Ограничения}
+\begin{itemize}
+  \item Реальная торговля и production PnL \textbf{не подтверждались}; стратегия не запускалась на боевом контуре.
+  \item Результаты backtest~--- симуляция на исторических свечах по синтетическому CSV; без комиссий, проскальзывания и order-flow фильтрации; не доказывают доходность.
+  \item NLP eval corpus~--- hand-labeled, rules-only; LLM-fallback и live order-flow не входят в эти метрики.
+  \item Sandbox-исполнение не эквивалентно реальной ликвидности и задержкам биржи.
+\end{itemize}
+
+\vspace{2pt}\hrule\vspace{3pt}
+\textbf{Запуск:} \texttt{python main.py} \,$\cdot$\, \texttt{python main.py --backtest data/backtest\_signals\_sample.csv} \,$\cdot$\, \texttt{pytest tests/ -v}
+
+\end{document}

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "description": "Headlines where rules-only parser often fails; intended for Gemini fallback eval. Hand-labeled expected labels.",
+  "samples": [
+    {"text": "MAX мессенджер обогнал Telegram по числу пользователей в РФ", "expected_sentiment": "bullish", "expected_tickers": ["VKCO"], "category": "entity"},
+    {"text": "Компания-эмитент YDEX нарастила аудиторию сервисов", "expected_sentiment": "bullish", "expected_tickers": ["YDEX"], "category": "paraphrase"},
+    {"text": "Ozon Банк получил лицензию на брокерскую деятельность", "expected_sentiment": "bullish", "expected_tickers": ["OZON"], "category": "entity"},
+    {"text": "Инвесторы массово фиксируют прибыль по нефтяному сектору", "expected_sentiment": "bearish", "expected_tickers": ["ROSN"], "category": "sector"},
+    {"text": "Стартап маркетплейса усилил позиции на рынке e-commerce", "expected_sentiment": "bullish", "expected_tickers": ["OZON"], "category": "implicit"},
+    {"text": "Банк из топ-10 получил предписание ЦБ", "expected_sentiment": "bearish", "expected_tickers": ["SBER"], "category": "implicit"},
+    {"text": "ФАС возбудила дело против крупного ритейлера", "expected_sentiment": "bearish", "expected_tickers": ["MGNT"], "category": "implicit"},
+    {"text": "Совет директоров эмитента одобрил программу выкупа акций", "expected_sentiment": "bullish", "expected_tickers": [], "category": "implicit"},
+    {"text": "Руководство застройщика ПИК задержано по делу об обналичивании", "expected_sentiment": "bearish", "expected_tickers": ["PIKK"], "category": "corporate"},
+    {"text": "ЕС ввёл нефтяное эмбарго против России", "expected_sentiment": "bearish", "expected_tickers": ["ROSN"], "category": "geo"},
+    {"text": "Кинопоиск запустил новый оригинальный сериал", "expected_sentiment": "none", "expected_tickers": [], "category": "negative"},
+    {"text": "Погода в Москве улучшилась", "expected_sentiment": "none", "expected_tickers": [], "category": "negative"}
+  ]
+}

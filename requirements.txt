@@ -17,7 +17,7 @@ aiohttp>=3.9.0
 feedparser>=6.0.0
 
 # NLP / Semantic analysis
-google-generativeai>=0.3.0  # Gemini API (free tier: 60 req/min)
+google-genai>=1.0.0          # Gemini API (free tier: 60 req/min)
 
 # Terminal dashboard
 rich>=13.0.0

@@ -307,67 +307,76 @@ def _build_cmdbar(state: DashboardState) -> Panel:
 def _build_charts_page(state: DashboardState) -> Panel:
     """Page 2: plotext charts for signal activity and PnL."""
     import plotext as plt
+    import shutil
+
+    # Fit charts to terminal width minus borders/padding
+    term_width = shutil.get_terminal_size((100, 30)).columns
+    chart_width = max(60, term_width - 4)
 
     content_parts = []
 
-    # -- signal timeline bar chart --
-    plt.clf()
-    plt.theme("dark")
-    plt.plot_size(None, 12)
-    plt.title("Signals (last 30)")
+    try:
+        # -- signal timeline bar chart --
+        plt.clf()
+        plt.theme("dark")
+        plt.plot_size(chart_width, 12)
+        plt.title("Signals (last 30)")
 
-    if state.signal_timeline:
-        recent = list(state.signal_timeline)[-30:]
-        labels = [t.strftime("%H:%M") for t, _ in recent]
-        colors_map = {"bullish": "green", "bearish": "red", "neutral": "gray"}
-        values = [1] * len(recent)
-        colors = [colors_map.get(s, "gray") for _, s in recent]
+        if state.signal_timeline:
+            recent = list(state.signal_timeline)[-30:]
+            labels = [t.strftime("%H:%M") for t, _ in recent]
+            colors_map = {"bullish": "green", "bearish": "red", "neutral": "gray"}
+            values = [1] * len(recent)
+            colors = [colors_map.get(s, "gray") for _, s in recent]
+            plt.simple_bar(labels, values, color=colors)
+        else:
+            plt.simple_bar(["no signals yet"], [0])
 
-        plt.simple_bar(labels, values, color=colors)
-    else:
-        plt.title("Signals — no data yet")
-        plt.simple_bar(["waiting"], [0])
+        content_parts.append(plt.build())
 
-    content_parts.append(plt.build())
+        # -- PnL line chart --
+        plt.clf()
+        plt.theme("dark")
+        plt.plot_size(chart_width, 12)
+        plt.title("Cumulative PnL")
 
-    # -- PnL line chart --
-    plt.clf()
-    plt.theme("dark")
-    plt.plot_size(None, 12)
-    plt.title("Cumulative PnL")
+        if state.pnl_history and len(state.pnl_history) > 0:
+            vals = [s.pnl for s in state.pnl_history]
+            xs = list(range(len(vals)))
+            plt.plot(xs, vals, color="green" if vals[-1] >= 0 else "red")
+        else:
+            plt.plot([0, 1], [0, 0])
+            plt.title("PnL — no trades yet")
 
-    if state.pnl_history:
-        times = [s.time.strftime("%H:%M") for s in state.pnl_history]
-        vals = [s.pnl for s in state.pnl_history]
-        plt.plot(list(range(len(vals))), vals, color="green" if vals[-1] >= 0 else "red")
-        plt.xticks(list(range(0, len(times), max(1, len(times) // 8))),
-                   [times[i] for i in range(0, len(times), max(1, len(times) // 8))])
-    else:
-        plt.title("PnL — no trades yet")
-        plt.plot([0], [0])
+        content_parts.append(plt.build())
 
-    content_parts.append(plt.build())
+        # -- signal breakdown --
+        plt.clf()
+        plt.theme("dark")
+        plt.plot_size(chart_width, 8)
+        plt.title("Signal Breakdown")
+        labels = ["Bullish", "Bearish", "Neutral"]
+        vals = [
+            state.signal_counts.get("bullish", 0),
+            state.signal_counts.get("bearish", 0),
+            state.signal_counts.get("neutral", 0),
+        ]
+        if any(v > 0 for v in vals):
+            plt.simple_bar(labels, vals, color=["green", "red", "gray"])
+        else:
+            plt.simple_bar(["no data"], [1])
 
-    # -- signal breakdown --
-    plt.clf()
-    plt.theme("dark")
-    plt.plot_size(None, 8)
-    plt.title("Signal Breakdown")
-    labels = ["Bullish", "Bearish", "Neutral"]
-    vals = [
-        state.signal_counts.get("bullish", 0),
-        state.signal_counts.get("bearish", 0),
-        state.signal_counts.get("neutral", 0),
-    ]
-    if any(v > 0 for v in vals):
-        plt.simple_bar(labels, vals, color=["green", "red", "gray"])
-    else:
-        plt.simple_bar(["no data"], [0])
+        content_parts.append(plt.build())
 
-    content_parts.append(plt.build())
+        combined = Text.from_ansi("\n\n".join(content_parts))
+        return Panel(combined, title="CHARTS", border_style="magenta")
 
-    combined = Text.from_ansi("\n".join(content_parts))
-    return Panel(combined, title="CHARTS", border_style="magenta")
+    except Exception as e:
+        return Panel(
+            Text(f"Chart render error: {type(e).__name__}: {e}", style="red"),
+            title="CHARTS",
+            border_style="red",
+        )
 
 
 def _build_history_page(state: DashboardState) -> Panel:

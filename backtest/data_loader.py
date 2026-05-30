@@ -9,6 +9,24 @@ import csv
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
+
+
+_MSK = ZoneInfo("Europe/Moscow")
+
+
+def normalize_signal_dt(dt: datetime) -> datetime:
+    """CSV signal timestamps are naive MOEX local time → naive UTC."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_MSK)
+    return dt.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def normalize_candle_dt(dt: datetime) -> datetime:
+    """Candle timestamps from API/cache are naive UTC."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 
 # ── Candle dict keys: time, open, high, low, close, volume ────
@@ -66,7 +84,7 @@ def _load_csv(path: Path) -> list[dict]:
     with open(path, encoding="utf-8") as f:
         for row in csv.DictReader(f):
             candles.append({
-                "time": datetime.fromisoformat(row["time"]),
+                "time": normalize_candle_dt(datetime.fromisoformat(row["time"])),
                 "open": float(row["open"]),
                 "high": float(row["high"]),
                 "low": float(row["low"]),
@@ -139,8 +157,9 @@ class CandleCache:
 
         result: list[dict] = []
         for c in response.candles:
+            raw_time = c.time if hasattr(c, "time") else from_dt
             result.append({
-                "time": c.time if hasattr(c, "time") else from_dt,
+                "time": normalize_candle_dt(raw_time),
                 "open": q2f(c.open),
                 "high": q2f(c.high),
                 "low": q2f(c.low),
@@ -156,6 +175,8 @@ class CandleCache:
         end: datetime,
     ) -> list[dict]:
         """Load cached candles for a datetime range (sync, from cache only)."""
+        start = normalize_candle_dt(start)
+        end = normalize_candle_dt(end)
         candles: list[dict] = []
         current = start.date()
         end_date = end.date()
@@ -164,7 +185,8 @@ class CandleCache:
             if path.exists():
                 day_candles = _load_csv(path)
                 candles.extend(
-                    c for c in day_candles if start <= c["time"] <= end
+                    c for c in day_candles
+                    if start <= c["time"] <= end
                 )
             current += timedelta(days=1)
         candles.sort(key=lambda c: c["time"])

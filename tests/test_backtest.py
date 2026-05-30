@@ -5,7 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from backtest.data_loader import CandleCache, calculate_atr_from_candles, _save_csv, _load_csv
+from backtest.data_loader import (
+    CandleCache,
+    calculate_atr_from_candles,
+    normalize_candle_dt,
+    normalize_signal_dt,
+    _load_csv,
+    _save_csv,
+)
 from backtest.report import BacktestReport
 from backtest.runner import BacktestRunner, Signal
 from backtest.simulator import PositionSimulator, TradeResult
@@ -326,3 +333,19 @@ class TestSignalCSV:
 
         signals = BacktestRunner.load_signals_csv(csv_path)
         assert len(signals) == 0
+
+
+# ══════════════════════════════════════════════════════════════
+# Timezone normalization
+# ══════════════════════════════════════════════════════════════
+
+
+class TestTimezoneNormalization:
+    def test_signal_naive_treated_as_msk(self):
+        local = datetime(2026, 1, 15, 10, 30, 0)
+        utc = normalize_signal_dt(local)
+        assert utc == datetime(2026, 1, 15, 7, 30, 0)
+
+    def test_candle_naive_left_as_utc(self):
+        ts = datetime(2026, 1, 15, 7, 30, 0)
+        assert normalize_candle_dt(ts) == ts

@@ -149,15 +149,21 @@ if not gemini_key:
     warn("GEMINI_API_KEY not set — LLM fallback in news parsing disabled (optional)")
 else:
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=gemini_key)
-        # Just init the model — don't make an API call
-        genai.GenerativeModel("gemini-1.5-flash")
-        ok("GEMINI_API_KEY set and SDK loaded")
+        from bot.gemini_config import probe_gemini
+
+        gemini_ok, msg, model = probe_gemini(gemini_key)
+        if gemini_ok:
+            ok(f"Gemini API: {msg}")
+        else:
+            warn(f"Gemini: {msg}")
+            if "region blocked" in msg:
+                warn("  Gemini free tier unavailable from this region — LLM fallback stays off; rules NLP works")
+            elif "no free tier" in msg or "limit=0" in msg:
+                warn("  No free-tier quota for listed models — not caused by your request count")
     except ImportError:
-        warn("GEMINI_API_KEY set but google-generativeai not installed")
+        warn("GEMINI_API_KEY set but google-genai not installed (pip install google-genai)")
     except Exception as e:
-        warn(f"GEMINI_API_KEY set but SDK error: {e}")
+        warn(f"GEMINI API check failed: {e}")
 
 
 # ── 7. Data files ─────────────────────────────────────────────

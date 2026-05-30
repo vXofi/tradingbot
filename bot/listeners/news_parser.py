@@ -447,10 +447,19 @@ class NewsParser:
         if not self.gemini_api_key:
             return False
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.gemini_api_key)
-            self._gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-            return True
+            from google import genai
+
+            from ..gemini_config import get_gemini_model_candidates, probe_gemini
+
+            self._gemini_client = genai.Client(api_key=self.gemini_api_key)
+            ok, _msg, model = probe_gemini(
+                self.gemini_api_key,
+                models=get_gemini_model_candidates(),
+            )
+            if ok and model:
+                self._gemini_model = model
+                return True
+            return False
         except ImportError:
             return False
         except Exception:
@@ -501,7 +510,10 @@ class NewsParser:
 
         for attempt in range(_MAX_LLM_RETRIES):
             try:
-                response = self._gemini_model.generate_content(prompt)
+                response = self._gemini_client.models.generate_content(
+                    model=self._gemini_model,
+                    contents=prompt,
+                )
                 result_text = response.text.strip()
 
                 result = self._extract_json(result_text)

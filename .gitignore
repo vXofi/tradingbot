@@ -1,5 +1,7 @@
 # ── Secrets & credentials ────────────────────────────────────
 .env
+.env.local
+.env.*.local
 
 # ── Telegram session (auth data - NEVER COMMIT) ──────────────
 sessions/
@@ -9,6 +11,7 @@ sessions/
 # ── Runtime data (generated, not source) ─────────────────────
 logs/
 data/trades.db
+data/trades.db-*
 data/backtest_cache/
 
 # ── Claude Code internal state ────────────────────────────────
@@ -18,6 +21,8 @@ data/backtest_cache/
 .coverage
 .pytest_cache/
 htmlcov/
+.mypy_cache/
+.ruff_cache/
 
 # ── Virtual environment ───────────────────────────────────────
 .venv/
@@ -34,8 +39,21 @@ build/
 dist/
 *.egg-info/
 
-# ── IDE ───────────────────────────────────────────────────────
+# ── LaTeX build artifacts (keep .tex / .pdf if committed) ───
+docs/*.aux
+docs/*.log
+docs/*.out
+docs/*.toc
+docs/*.fls
+docs/*.fdb_latexmk
+docs/*.synctex.gz
+
+# ── OS / IDE ──────────────────────────────────────────────────
+.DS_Store
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# ── Cursor (local IDE state) ──────────────────────────────────
+.cursor/
