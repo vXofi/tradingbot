@@ -39,7 +39,12 @@ build/
 dist/
 *.egg-info/
 
-# ── LaTeX build artifacts (keep .tex / .pdf if committed) ───
+# ── Portfolio / eval reports (local submission artifacts, not source) ─
+docs/portfolio_tradingbot.tex
+docs/portfolio_tradingbot.pdf
+docs/*_report.md
+
+# ── LaTeX build artifacts ─────────────────────────────────────
 docs/*.aux
 docs/*.log
 docs/*.out
