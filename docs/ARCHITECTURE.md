@@ -509,7 +509,8 @@ from t_tech.invest import (
 ```
 TOKEN_TINKOFF=t.xxx...
 USE_SANDBOX=true
-GEMINI_API_KEY=xxx...          # Опционально
+GEMINI_API_KEY=xxx...          # Опционально (free-tier Flash models)
+GEMINI_MODEL=gemini-2.5-flash-lite  # Опционально, см. bot/gemini_config.py
 TELEGRAM_API_ID=12345          # Опционально
 TELEGRAM_API_HASH=abc...       # Опционально
 ```
@@ -538,3 +539,18 @@ TELEGRAM_API_HASH=abc...       # Опционально
 ```json
 [{"name": "SmartLab", "url": "...", "interval_sec": 60}, ...]
 ```
+
+---
+
+## Тестирование и offline-валидация
+
+| Артефакт | Назначение |
+|----------|------------|
+| `pytest tests/` | ~439 тестов, ~61% покрытие `bot/` |
+| `bot/eval/nlp_metrics.py` | NLP benchmark: `--compare` rules vs Gemini |
+| `data/nlp_eval.json` | 38 размеченных заголовков (rules regression) |
+| `data/nlp_eval_llm.json` | 12 «сложных» заголовков (Gemini compare) |
+| `data/backtest_signals_sample.csv` | Демо backtest |
+| `docs/nlp_eval_report.md`, `docs/backtest_report.md` | Зафиксированные метрики |
+
+**CI:** GitHub Actions может падать вне РФ — SDK `t-tech-investments` geo-restricted. Локальный прогон: `pytest tests/ -v`.

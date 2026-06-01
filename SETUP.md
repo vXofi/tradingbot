@@ -26,9 +26,10 @@ Open `.env` and fill in the values:
 # Required — Tinkoff Invest API token (sandbox or production)
 TOKEN_TINKOFF=t.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Optional — Google Gemini API key (enables LLM fallback in news parsing)
-# Free tier: 60 req/min. Get at: https://aistudio.google.com/apikey
+# Optional — Google Gemini API key (LLM fallback when rules are inconclusive)
+# Free tier: Flash / Flash-Lite models only. Get at: https://aistudio.google.com/apikey
 GEMINI_API_KEY=AIzaSy...
+# GEMINI_MODEL=gemini-2.5-flash-lite
 
 # Optional — sandbox mode (default: true)
 # Set to false only for live production trading
@@ -66,12 +67,28 @@ Expected output when everything is OK:
 ✅ Account balance: 1,000,000 RUB
 ✅ Data files present (whitelist, keywords, entities, sectors, rss_feeds)
 ✅ Whitelist: 39 instruments
-⚠️  GEMINI_API_KEY not set — LLM fallback disabled (optional)
+⚠️  Gemini: region blocked or no free tier — LLM fallback off (optional; rules NLP still works)
 ```
 
 ---
 
-## 4. Start the bot
+## 4. Tests & benchmarks
+
+```bash
+pytest tests/ -v                              # ~439 tests (~61% coverage on bot/)
+pytest tests/ -v -m "not llm"               # Skip Gemini API tests
+python -m bot.eval.nlp_metrics              # NLP rules eval (38 headlines)
+python -m bot.eval.nlp_metrics --check-gemini
+python -m bot.eval.nlp_metrics --compare      # Rules vs Gemini on hard corpus
+```
+
+Reports: [docs/nlp_eval_report.md](docs/nlp_eval_report.md), [docs/backtest_report.md](docs/backtest_report.md).
+
+> GitHub Actions CI may fail outside Russia — Tinkoff SDK (`t-tech-investments`) requires Russian IP. Run tests locally.
+
+---
+
+## 5. Start the bot
 
 ```bash
 # Full dashboard with RSS feeds
@@ -102,7 +119,7 @@ Once running, type commands in the input bar:
 
 ---
 
-## 5. Backtest signal format
+## 6. Backtest signal format
 
 ```csv
 ticker,direction,timestamp
@@ -111,12 +128,12 @@ GAZP,bearish,2026-03-15T11:00:00
 ```
 
 ```bash
-python main.py --backtest signals.csv
+python main.py --backtest data/backtest_signals_sample.csv
 ```
 
 ---
 
-## 6. Key files
+## 7. Key files
 
 | File | Purpose |
 |------|---------|
@@ -127,3 +144,7 @@ python main.py --backtest signals.csv
 | `data/trades.db` | SQLite trade history (auto-created) |
 | `logs/` | Daily event logs (auto-created) |
 | `data/backtest_cache/` | Cached candles for backtests (auto-created) |
+| `data/nlp_eval.json` | NLP benchmark corpus (easy, rules) |
+| `data/nlp_eval_llm.json` | NLP benchmark corpus (hard, Gemini compare) |
+| `data/backtest_signals_sample.csv` | Sample backtest signals |
+| `docs/portfolio_tradingbot.pdf` | Portfolio one-pager (ITMO / project description) |

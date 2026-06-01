@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Event-driven automated trading bot for the Russian stock market (MOEX) using the Tinkoff Investments API. Combines **news-driven NLP analysis** with **order flow validation** to detect and execute momentum trades in sandbox mode.
 
-**Current stage:** Full pipeline — news parsing (RSS + hybrid NLP), order flow validation, execution with risk management, signal arbitration, multi-page Rich Live terminal dashboard, backtesting, and comprehensive test suite (409 tests).
+**Current stage:** Full pipeline — news parsing (RSS + hybrid NLP), order flow validation, execution with risk management, signal arbitration, multi-page Rich Live terminal dashboard, backtesting, offline NLP eval (rules + Gemini compare), portfolio docs, and test suite (~439 tests, ~61% coverage on `bot/`).
 
 ## Development Setup
 
@@ -18,14 +18,16 @@ python main.py              # Launch dashboard (default)
 python main.py --no-rss     # Launch without RSS feeds
 python main.py --sandbox    # Run legacy sandbox debug script
 python main.py --backtest signals.csv  # Run backtest on historical data
-pytest tests/ -v            # Run test suite (409 tests)
-pytest --cov=bot            # Run with coverage report
+pytest tests/ -v            # Run test suite (~439 tests; 2 skipped without Gemini)
+pytest --cov=bot tests/     # Coverage report (~61% on bot/)
+python -m bot.eval.nlp_metrics --compare  # Rules vs LLM on hard corpus
 ```
 
 **Configuration:**
 - Environment variables in `.env`
 - `TOKEN_TINKOFF`: API token for Tinkoff sandbox access
-- `GEMINI_API_KEY`: Google Gemini API key (optional, for LLM fallback in NLP)
+- `GEMINI_API_KEY`: Google Gemini API key (optional, LLM fallback; free-tier Flash models only)
+- `GEMINI_MODEL`: Optional override (default candidates in `bot/gemini_config.py`)
 - `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`: Telegram MTProto keys (optional)
 
 **Safety:** Always use sandbox mode for development. Never commit production credentials.
@@ -59,6 +61,8 @@ main.py → dashboard.py (Rich Live TUI, multi-page)
 - **`bot/core.py`**: Central orchestrator. Wires signal arbiter, flow analyzer, order manager. Handles unified exit via `ExitSignal` callback and `_attempt_reversal()`.
 - **`bot/signal_arbiter.py`**: Deduplication (time window) + contradiction detection against open positions.
 - **`bot/listeners/news_parser.py`**: Hybrid NLP — keyword matching first, Gemini LLM fallback. Entity resolution via `data/entities.json` (ticker synonyms, regex patterns). Political/macro news handling with sector mapping.
+- **`bot/gemini_config.py`**: Free-tier model list (`gemini-2.5-flash-lite`, `3.x` previews), `probe_gemini()`, region/quota-aware errors.
+- **`bot/eval/nlp_metrics.py`**: Offline NLP benchmark — `data/nlp_eval.json` (easy), `data/nlp_eval_llm.json` (hard), `--compare` for rules vs hybrid.
 - **`bot/listeners/rss_listener.py`**: Async RSS feed poller with dedup and freshness filtering.
 - **`bot/validators/flow_analyzer.py`**: Validates signals via order book imbalance + trade volume spike + price movement. Has `validate_reversal()` for position flips.
 - **`bot/execution/position_tracker.py`**: Monitors positions for SL/TP/time/trailing stop/momentum. Emits `ExitSignal` objects.
@@ -77,6 +81,9 @@ main.py → dashboard.py (Rich Live TUI, multi-page)
 - `data/rss_feeds.json` — RSS feed URLs and polling intervals
 - `data/trades.db` — SQLite database of closed positions (auto-created)
 - `data/backtest_cache/` — Cached historical candles (CSV, one file per FIGI+date)
+- `data/backtest_signals_sample.csv` — Sample signals for backtest demo
+- `data/nlp_eval.json` — 38 hand-labeled headlines (rules regression)
+- `data/nlp_eval_llm.json` — 12 hard headlines (rules vs Gemini compare)
 
 ## Tinkoff API Patterns
 
@@ -124,17 +131,22 @@ Order-flow validation is skipped in backtest mode — signals are assumed confir
 
 ## Testing
 
-409 tests across 12 test files. Run with `pytest tests/ -v`.
+~439 tests across 16 test files (`pytest tests/ -v`). Overall `bot/` coverage ~61% (`pytest --cov=bot tests/`).
 
-| Module | Coverage |
-|--------|----------|
-| `signal_arbiter.py` | 100% |
-| `models.py` | 100% |
-| `risk_manager.py` | 95% |
-| `config.py` | 92% |
-| `event_logger.py` | 83% |
-| `news_parser.py` | 80% |
-| `retry.py` | 82% |
-| `trade_db.py` | 98% |
-| `position_tracker.py` | 60% |
-| `flow_analyzer.py` | 47% |
+| Module / area | Notes |
+|---------------|--------|
+| `signal_arbiter.py`, `models.py` | 100% |
+| `trade_db.py`, `risk_manager.py`, `config.py` | 92–98% |
+| `news_parser.py`, `retry.py`, `event_logger.py` | 80–83% |
+| `test_core.py` | TradingBot orchestration (mocked) |
+| `test_nlp_eval.py` | Rules corpus regression (38 samples) |
+| `test_nlp_eval_llm.py` | Hard corpus + Gemini (`@pytest.mark.llm`, skipped without API) |
+| `test_e2e_pipeline.py` | Parse → arbiter → mock flow → order |
+| `test_backtest.py` | Simulator, candle cache, timezone normalization |
+| `core.py`, gRPC streams | Low coverage (needs live/mock Tinkoff) |
+
+**NLP eval (documented):** easy corpus rules 100% accuracy; hard corpus rules 20% → hybrid 60% (5 LLM calls). See `docs/nlp_eval_report.md`.
+
+**CI:** GitHub Actions may fail outside Russia — `t-tech-investments` geo-restricted. Validate locally with `pytest`.
+
+**Backtest sample:** `python main.py --backtest data/backtest_signals_sample.csv` — see `docs/backtest_report.md` (not real PnL).

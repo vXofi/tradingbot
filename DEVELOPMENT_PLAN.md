@@ -20,7 +20,7 @@
 | 14 | Dashboard (multi-page, charts, controls) | ✅ Готово | `dashboard.py` |
 | 15 | Единая точка входа | ✅ Готово | `main.py` |
 | 16 | Retry / reconnection / rate limiting | ✅ Готово | `bot/utils/retry.py`, модификации stream/order/parser |
-| 17 | Автоматические тесты (pytest) | ✅ Готово (409 тестов, 56% покрытие) | `tests/`, `pyproject.toml` |
+| 17 | Автоматические тесты (pytest) | ✅ Готово (~439 тестов, ~61% покрытие `bot/`) | `tests/`, `pyproject.toml`, `bot/eval/` |
 | 18 | Валидация конфигурации | ✅ Готово | `bot/config.py` (__post_init__) |
 | 19 | Персистенция истории сделок (SQLite) | ✅ Готово | `bot/utils/trade_db.py`, `data/trades.db` |
 | 20 | Graceful shutdown (SIGTERM, close-all) | ✅ Готово | `dashboard.py`, `bot/core.py` |
@@ -308,9 +308,9 @@ JSONL файлы в `logs/` накапливаются бесконечно (о�
 
 ---
 
-### ~~LOW-2: Расширить покрытие тестов~~ → Частично исправлено (409 тестов, 56%)
+### ~~LOW-2: Расширить покрытие тестов~~ → Частично исправлено (~439 тестов, ~61%)
 
-**Текущее покрытие:** 56% (409 тестов). Не покрыты:
+**Текущее покрытие:** ~61% на `bot/` (~439 тестов). Добавлены: `test_core.py`, NLP eval, E2E pipeline. Не покрыты:
 - `bot/core.py` (0%) — требует мок всего pipeline
 - `bot/execution/position_tracker.py` (19%) — требует мок API для мониторинга
 - `bot/listeners/rss_listener.py` (22%) — требует мок aiohttp
